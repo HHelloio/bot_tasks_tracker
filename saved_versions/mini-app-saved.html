@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Mini App</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #667eea;
+            color: white;
+            text-align: center;
+        }
+        button {
+            background: #0088cc;
+            color: white;
+            border: none;
+            padding: 15px;
+            margin: 10px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 200px;
+        }
+        .card {
+            background: rgba(255,255,255,0.2);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>🚀 My Mini App</h1>
+        <p>Simple Telegram Mini App</p>
+        
+        <button onclick="sendData()">Send Data to Bot</button>
+        <button onclick="closeApp()">Close App</button>
+    </div>
+    
+    <div id="output" class="card"></div>
+
+    <script>
+        let tg = Telegram.WebApp;
+        
+        tg.expand();
+        tg.ready();
+        
+        function log(message) {
+            document.getElementById('output').innerHTML = message;
+        }
+        
+        function sendData() {
+            const data = {
+                action: "test",
+                message: "Hello from Mini App!",
+                timestamp: new Date().toISOString()
+            };
+            tg.sendData(JSON.stringify(data));
+            log("✅ Data sent to bot!");
+        }
+        
+        function closeApp() {
+            tg.close();
+        }
+        
+        log("Mini App loaded!");
+    </script>
+</body>
+</html>

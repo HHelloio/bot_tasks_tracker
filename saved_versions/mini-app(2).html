@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Task Tracker</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #667eea;
+            color: white;
+            text-align: center;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .tab {
+            display: none;
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .active {
+            display: block;
+        }
+        button {
+            background: #0088cc;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            margin: 5px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .tab-button {
+            background: rgba(255,255,255,0.2);
+            margin: 5px;
+        }
+        .tab-button.active {
+            background: #0088cc;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0;
+            border: none;
+            border-radius: 5px;
+            background: rgba(255,255,255,0.9);
+        }
+        .task-item {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            text-align: left;
+        }
+        .task-title {
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .task-meta {
+            font-size: 12px;
+            color: #ccc;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📋 Task Tracker</h1>
+        <p>Manage your projects and tasks</p>
+        
+        <div class="tabs">
+            <button class="tab-button active" onclick="showTab('tasks')">My Tasks</button>
+            <button class="tab-button" onclick="showTab('projects')">Projects</button>
+            <button class="tab-button" onclick="showTab('create')">Create Task</button>
+            <button class="tab-button" onclick="showTab('create-project')">Create Project</button>
+        </div>
+        
+        <div id="tasks" class="tab active">
+            <h2>📝 My Tasks</h2>
+            <div id="tasks-list">
+                <p>Loading tasks...</p>
+            </div>
+        </div>
+        
+        <div id="projects" class="tab">
+            <h2>📁 My Projects</h2>
+            <div id="projects-list">
+                <p>Loading projects...</p>
+            </div>
+        </div>
+        
+        <div id="create" class="tab">
+            <h2>➕ Create Task</h2>
+            <input type="text" id="task-title" placeholder="Task title">
+            <textarea id="task-desc" placeholder="Task description"></textarea>
+            <input type="number" id="task-project" placeholder="Project ID">
+            <select id="task-priority">
+                <option value="low">Low Priority</option>
+                <option value="medium" selected>Medium Priority</option>
+                <option value="high">High Priority</option>
+            </select>
+            <input type="date" id="task-due">
+            <button onclick="createTask()">Create Task</button>
+        </div>
+        
+        <div id="create-project" class="tab">
+            <h2>🏗️ Create Project</h2>
+            <input type="text" id="project-name" placeholder="Project name">
+            <textarea id="project-desc" placeholder="Project description"></textarea>
+            <button onclick="createProject()">Create Project</button>
+        </div>
+        
+        <div class="card">
+            <button onclick="closeApp()">Close App</button>
+        </div>
+    </div>
+
+    <script>
+        let tg = Telegram.WebApp;
+        
+        tg.expand();
+        tg.ready();
+        
+        function showTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            // Show selected tab
+            document.getElementById(tabName).classList.add('active');
+            
+            // Update tab buttons
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+        }
+        
+        function createTask() {
+            const taskData = {
+                action: "create_task",
+                title: document.getElementById('task-title').value,
+                description: document.getElementById('task-desc').value,
+                project_id: parseInt(document.getElementById('task-project').value),
+                priority: document.getElementById('task-priority').value,
+                due_date: document.getElementById('task-due').value,
+                timestamp: new Date().toISOString()
+            };
+            
+            if (!taskData.title) {
+                alert("Please enter a task title");
+                return;
+            }
+            
+            tg.sendData(JSON.stringify(taskData));
+            alert("Task created! Check bot messages for confirmation.");
+            
+            // Clear form
+            document.getElementById('task-title').value = '';
+            document.getElementById('task-desc').value = '';
+            document.getElementById('task-project').value = '';
+            document.getElementById('task-due').value = '';
+        }
+        
+        function createProject() {
+            const projectData = {
+                action: "create_project",
+                name: document.getElementById('project-name').value,
+                description: document.getElementById('project-desc').value,
+                timestamp: new Date().toISOString()
+            };
+            
+            if (!projectData.name) {
+                alert("Please enter a project name");
+                return;
+            }
+            
+            tg.sendData(JSON.stringify(projectData));
+            alert("Project created! Check bot messages for confirmation.");
+            
+            // Clear form
+            document.getElementById('project-name').value = '';
+            document.getElementById('project-desc').value = '';
+        }
+        
+        function closeApp() {
+            tg.close();
+        }
+        
+        // Load initial data
+        document.addEventListener('DOMContentLoaded', function() {
+            // Simulate loading data
+            setTimeout(() => {
+                document.getElementById('tasks-list').innerHTML = `
+                    <div class="task-item">
+                        <div class="task-title">Sample Task</div>
+                        <div class="task-meta">Project: Sample Project • Status: To Do • Due: 2024-12-31</div>
+                    </div>
+                    <p>Use the bot commands to see your real tasks</p>
+                `;
+                
+                document.getElementById('projects-list').innerHTML = `
+                    <div class="task-item">
+                        <div class="task-title">Sample Project</div>
+                        <div class="task-meta">Created: 2024-01-01</div>
+                    </div>
+                    <p>Use the bot commands to see your real projects</p>
+                `;
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Task Tracker</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #667eea;
+            color: white;
+            text-align: center;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .tab {
+            display: none;
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .active {
+            display: block;
+        }
+        button {
+            background: #0088cc;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            margin: 5px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .tab-button {
+            background: rgba(255,255,255,0.2);
+            margin: 5px;
+        }
+        .tab-button.active {
+            background: #0088cc;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0;
+            border: none;
+            border-radius: 5px;
+            background: rgba(255,255,255,0.9);
+        }
+        .task-item {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            text-align: left;
+        }
+        .task-title {
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .task-meta {
+            font-size: 12px;
+            color: #ccc;
+            margin-top: 5px;
+        }
+        .status-todo { border-left: 4px solid #ff6b6b; }
+        .status-progress { border-left: 4px solid #4ecdc4; }
+        .status-review { border-left: 4px solid #45b7d1; }
+        .status-done { border-left: 4px solid #96ceb4; }
+        .loading { opacity: 0.6; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📋 Task Tracker</h1>
+        <p>Manage your projects and tasks</p>
+        
+        <div class="tabs">
+            <button class="tab-button active" onclick="showTab('tasks')">My Tasks</button>
+            <button class="tab-button" onclick="showTab('projects')">Projects</button>
+            <button class="tab-button" onclick="showTab('create')">Create Task</button>
+            <button class="tab-button" onclick="showTab('create-project')">Create Project</button>
+        </div>
+        
+        <div id="tasks" class="tab active">
+            <h2>📝 My Tasks</h2>
+            <button onclick="loadTasks()">🔄 Refresh Tasks</button>
+            <div id="tasks-list">
+                <p>Loading your tasks...</p>
+            </div>
+        </div>
+        
+        <div id="projects" class="tab">
+            <h2>📁 My Projects</h2>
+            <button onclick="loadProjects()">🔄 Refresh Projects</button>
+            <div id="projects-list">
+                <p>Loading your projects...</p>
+            </div>
+        </div>
+        
+        <div id="create" class="tab">
+            <h2>➕ Create Task</h2>
+            <input type="text" id="task-title" placeholder="Task title *" required>
+            <textarea id="task-desc" placeholder="Task description"></textarea>
+            <select id="task-project">
+                <option value="">Select Project</option>
+            </select>
+            <select id="task-priority">
+                <option value="low">Low Priority</option>
+                <option value="medium" selected>Medium Priority</option>
+                <option value="high">High Priority</option>
+            </select>
+            <input type="date" id="task-due">
+            <button onclick="createTask()">Create Task</button>
+        </div>
+        
+        <div id="create-project" class="tab">
+            <h2>🏗️ Create Project</h2>
+            <input type="text" id="project-name" placeholder="Project name *" required>
+            <textarea id="project-desc" placeholder="Project description"></textarea>
+            <button onclick="createProject()">Create Project</button>
+        </div>
+        
+        <div style="margin-top: 20px;">
+            <button onclick="closeApp()">Close App</button>
+        </div>
+    </div>
+
+    <script>
+        let tg = Telegram.WebApp;
+        let userProjects = [];
+        
+        tg.expand();
+        tg.ready();
+        
+        function showTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            // Show selected tab
+            document.getElementById(tabName).classList.add('active');
+            
+            // Update tab buttons
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Load data when switching to specific tabs
+            if (tabName === 'tasks') {
+                loadTasks();
+            } else if (tabName === 'projects') {
+                loadProjects();
+            } else if (tabName === 'create') {
+                loadProjectsForSelect();
+            }
+        }
+        
+        function loadTasks() {
+            const tasksList = document.getElementById('tasks-list');
+            tasksList.innerHTML = '<p class="loading">Loading tasks from bot...</p>';
+            
+            // Send request to bot to get tasks
+            const requestData = {
+                action: "get_tasks",
+                timestamp: new Date().toISOString()
+            };
+            
+            tg.sendData(JSON.stringify(requestData));
+            
+            // Show message about checking bot
+            tasksList.innerHTML = `
+                <div class="task-item">
+                    <p>📨 Request sent to bot!</p>
+                    <p>Check your Telegram messages for the list of your tasks.</p>
+                    <p>Use commands in bot:</p>
+                    <p><code>/mytasks</code> - view your tasks</p>
+                    <p><code>/myprojects</code> - view your projects</p>
+                </div>
+            `;
+        }
+        
+        function loadProjects() {
+            const projectsList = document.getElementById('projects-list');
+            projectsList.innerHTML = '<p class="loading">Loading projects from bot...</p>';
+            
+            // Send request to bot to get projects
+            const requestData = {
+                action: "get_projects",
+                timestamp: new Date().toISOString()
+            };
+            
+            tg.sendData(JSON.stringify(requestData));
+            
+            // Show message about checking bot
+            projectsList.innerHTML = `
+                <div class="task-item">
+                    <p>📨 Request sent to bot!</p>
+                    <p>Check your Telegram messages for the list of your projects.</p>
+                    <p>Use command in bot: <code>/myprojects</code></p>
+                </div>
+            `;
+        }
+        
+        function loadProjectsForSelect() {
+            const projectSelect = document.getElementById('task-project');
+            projectSelect.innerHTML = '<option value="">Loading projects...</option>';
+            
+            // In a real implementation, you would load user's projects here
+            // For now, we'll add an option to create project first
+            setTimeout(() => {
+                projectSelect.innerHTML = `
+                    <option value="">Select Project (create one first)</option>
+                    <option value="1">Sample Project 1</option>
+                    <option value="2">Sample Project 2</option>
+                `;
+            }, 500);
+        }
+        
+        function createTask() {
+            const title = document.getElementById('task-title').value;
+            const projectId = document.getElementById('task-project').value;
+            
+            if (!title) {
+                alert("Please enter a task title");
+                return;
+            }
+            
+            if (!projectId) {
+                alert("Please select a project. Create a project first if you don't have any.");
+                return;
+            }
+            
+            const taskData = {
+                action: "create_task",
+                title: title,
+                description: document.getElementById('task-desc').value,
+                project_id: parseInt(projectId),
+                priority: document.getElementById('task-priority').value,
+                due_date: document.getElementById('task-due').value,
+                timestamp: new Date().toISOString()
+            };
+            
+            tg.sendData(JSON.stringify(taskData));
+            alert("Task created! Check bot messages for confirmation.");
+            
+            // Clear form
+            document.getElementById('task-title').value = '';
+            document.getElementById('task-desc').value = '';
+            document.getElementById('task-due').value = '';
+        }
+        
+        function createProject() {
+            const name = document.getElementById('project-name').value;
+            
+            if (!name) {
+                alert("Please enter a project name");
+                return;
+            }
+            
+            const projectData = {
+                action: "create_project",
+                name: name,
+                description: document.getElementById('project-desc').value,
+                timestamp: new Date().toISOString()
+            };
+            
+            tg.sendData(JSON.stringify(projectData));
+            alert("Project created! Check bot messages for confirmation.");
+            
+            // Clear form
+            document.getElementById('project-name').value = '';
+            document.getElementById('project-desc').value = '';
+        }
+        
+        function closeApp() {
+            tg.close();
+        }
+        
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            loadProjectsForSelect();
+        });
+    </script>
+</body>
+</html>
